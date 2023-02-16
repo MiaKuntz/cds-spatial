@@ -1,6 +1,6 @@
 ---
-title: "Working with sf objects"
-author: "Adela Sobotkova"
+title: "W02 - Working with sf objects"
+author: "Mia Thuge Kuntz"
 date: "04-February-2022 updated `r Sys.Date()`"
 output:
   rmdformats::readthedown:
@@ -22,6 +22,8 @@ opts_chunk$set(echo=TRUE,
                warning=FALSE)
 opts_knit$set(width=75)
 ```
+
+The following homework was created based on the .Rmd file provided by Adela for this course. The set up and structure, along with several codes, are therefor not of my own creation, and I take no credit for these.
 
 #  Goals: 
 
@@ -47,8 +49,8 @@ library(tmap)
 library(spData)
 
 # To install the spDataLarge uncomment the next line
-#install.packages("spDataLarge", repos = "https://geocompr.r-universe.dev")
-#install.packages("spData")
+install.packages("spDataLarge", repos = "https://geocompr.r-universe.dev")
+install.packages("spData")
 library(spDataLarge)
 ```
 
@@ -95,18 +97,31 @@ tm_shape(nz_elev)  +
 4. Put the north arrow in the top right corner of the map.
 5. Improve the legend title by adding the used units (m asl).
 6. Increase the number of breaks in the scale bar.
-7. Change the borders' color of the New Zealand's regions to black. 
-  Decrease the line width.
+7. Change the borders' color of the New Zealand's regions to black and decrease the line width.
 8. Change the background color to any color of your choice.
-
 
 ## Your solution
 
-```{r improved-map}
-# /Start Code/
-
-# /End Code/
+```{r initial-map}
+tm_shape(nz_elev)  +
+  tm_raster(title = "Elevation in m asl", 
+            style = "cont",
+            palette = "-RdYlGn") +
+  tm_shape(nz) +
+  tm_borders(col = "black", 
+             lwd = 1) +
+  tm_scale_bar(breaks = c(0, 50, 100, 150, 200),
+               text.size = 1) +
+  tm_compass(position = c("RIGHT", "top"),
+             type = "rose", 
+             size = 2) +
+  tm_credits(text = "M. Kuntz, 16.02.2023") +
+  tm_layout(main.title = "New Zealand",
+            bg.color = "lightblue",
+            inner.margins = c(0, 0, 0, 0))
 ```
+
+The above map is a result of my chosen improvements done to the original map from the assignment.
 
 
 # Exercise 2 - Inspect and display spatial data
@@ -146,12 +161,49 @@ Type answers to the questions as code comments next to or under the code used
  
 ## Your solution and answers
 
-```{r inspect-data}
-# /Start Code / #
+```{r inspect-zion-data}
+# Inspecting the `zion` object
+# Inspecting the content
+zion # By running the object I can view it's content
+# The object is a tibble with two dimensions - XY
+# Since this is an sf object I also know that is is a data frame
 
+# The type of data
+typeof(zion) # Using the `typeof` function shows the object data type is a list
+# This makes good sense, as list columns, often used in spacial data sets, contains more information than what shows, and are therefor good to use when working with large amounts of geographical data
 
-# /End Code/ #
+# The coordinate system
+projection(zion) # Using the `projection` function shows me the CRS for this object
+# The used coordinate system is the GRS80
+
+# Number of attributes
+# I know from running the object, that the `zion` data set contains 11 attributes, which shows as fields
+
+# The geometry
+st_geometry(zion) # Either from running the object name or by using the `st_geometry` function we can see, that the geometry type of the `zion` data set is a polygon
+# This goes well with us knowing it contains two dimensions
 ```
+
+```{r inspect-srtm-data}
+# Inspecting the `srtm` object
+# Inspecting the content
+srtm # By running the object I can view it's content
+# The object is a raster with four dimensions
+
+# The type of data
+typeof(srtm) # The `srtm` object contains S4 classes. This is also what determines the attributes of the object, which I won't comment on any further, as this area is rather unknown to me
+
+# The coordinate system
+projection(srtm) # Using the `projection` function shows me the CRS for this object
+# The used coordinate system is the WGS84
+
+# Number of dimensions
+dim(srtm) # Either from running the object name or by using the `dim` function we can see, that the object contains four dimensions
+
+# The data resolution
+res(srtm) # Either from running the object name or by using the `res` function we can see, that the data resolution is 0.0008333333,0.0008333333 
+```
+
 
 # Exercise 3 - Reconciling Coordinate systems
 
