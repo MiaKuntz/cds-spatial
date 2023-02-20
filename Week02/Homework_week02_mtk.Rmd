@@ -102,7 +102,7 @@ tm_shape(nz_elev)  +
 
 ## Your solution
 
-```{r initial-map}
+```{r new-map}
 tm_shape(nz_elev)  +
   tm_raster(title = "Elevation in m asl", 
             style = "cont",
