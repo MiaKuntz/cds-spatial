@@ -172,7 +172,7 @@ typeof(zion) # Using the `typeof` function shows the object data type is a list
 # This makes good sense, as list columns, often used in spacial data sets, contains more information than what shows, and are therefor good to use when working with large amounts of geographical data
 
 # The coordinate system
-projection(zion) # Using the `projection` function shows me the CRS for this object
+projection(zion) # Using the `projection` function shows me the coordinate system for this object
 # The used coordinate system is the GRS80
 
 # Number of attributes
@@ -193,11 +193,14 @@ srtm # By running the object I can view it's content
 typeof(srtm) # The `srtm` object contains S4 classes. This is also what determines the attributes of the object, which I won't comment on any further, as this area is rather unknown to me
 
 # The coordinate system
-projection(srtm) # Using the `projection` function shows me the CRS for this object
+projection(srtm) # Using the `projection` function shows me the coordinate system for this object
 # The used coordinate system is the WGS84
 
+# Number of attributes
+attributes(srtm)
+
 # Number of dimensions
-dim(srtm) # Either from running the object name or by using the `dim` function we can see, that the object contains four dimensions
+dim(srtm) # Either from running the object name or by using the `dim` function we can see, that the object contains three dimensions
 
 # The data resolution
 res(srtm) # Either from running the object name or by using the `res` function we can see, that the data resolution is 0.0008333333,0.0008333333 
@@ -222,15 +225,20 @@ Now that you know that coordinate systems differ, make them compatible twice ove
 ## Your solution
 
 ```{r crs assign}
-# Get the CRS from the zion object, where I know the CRS is GRS80 and the ESPG is therefor 42310
-crs_ <- 
-st_crs(zion) <- crs_
-zion_crs <-crs(zion, asText = TRUE)
+# Get the CRS from the zion object
+st_crs(zion, asText = TRUE) # The CRS is UTM Zone 12, Northern Hemisphere with the coordinate system GRS80
 
-# Project srtm to match the CRS of aarhus
-srtm_ <- projectRaster(srtm, crs = zion_crs, method = "ngb")
+# Assign the CRS to the zion object
+crs_zion <- 42310
+zion <- crs_zion
 
-plot(zion)
+# Create new srtm object to match the zion crs
+srtm2 <- srtm
+
+# Project srtm2 to match the CRS of zion
+srtm2 <- projectRaster(srtm2, crs = zion, method = "ngb")
+all.equal(st_crs(zion),st_crs(srtm2))
+
 
 # /End Code/ #
 ```

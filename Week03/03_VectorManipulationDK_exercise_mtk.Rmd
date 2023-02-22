@@ -41,8 +41,7 @@ Although, technically you can buffer data with unprojected coordinate reference 
 # load packages and objects
 library(sf)
 library(raster)
-
-shelters <- st_read("../data/shelters.json")
+library(dplyr)
 
 # Create dataframe with lat long data
 df <- data.frame(place = c("Aarhus Domkirke", 
@@ -51,27 +50,29 @@ df <- data.frame(place = c("Aarhus Domkirke",
                  longitude=c(10.2102364,10.1949197,10.2033485),
                  latitude=c(56.1574919,56.1772228,56.174346))
 
+# Review df
+df
 
 # Convert the data frame to an sf object             
 df_sf <- st_as_sf(df, coords = c("longitude", "latitude"), crs = 4326)
 
 # Transform the points to match the shelters' CRS EPSG 25832
-crs(shelters)
 df_crs <- st_transform(df_sf, crs = 25832)
 
 # Buffer the points
 df_buf <- st_buffer(df_crs, dist = 500)
 
 # Load shelters and buffer them by 500m
+shelters <- read_sf("../data/shelters.json")
 shelters_buf <- st_buffer(shelters, dist = 500)
 
 # Load the aarhus image
 aarhus <- brick("../data/Aarhus_1m.TIF")
 
 # Plot the shelters and buffers, aarhus image and points and their buffers
-plot(st_geometry(shelters_buf), col = "green")
-plot(st_geometry(shelters), pch = 2 ,add = TRUE)
-plotRGB(aarhus, stretch = "lin",add = TRUE)
+plot(shelters_buf$geometry, col = "green")
+plot(shelters$geometry, pch = 2 ,add = TRUE)
+plotRGB(aarhus,stretch = "lin",add = TRUE)
 plot(st_geometry(df_buf), col = "firebrick",add = TRUE)
 plot(st_geometry(df_crs), pch = 16, add = TRUE)
 
@@ -94,8 +95,8 @@ Also similar to buffering, centroid calculations should generally be performed o
 
 ```{r centroids, eval=FALSE}
 # Read in the municipality shapefile
-municipalities <- readRDS("gadm36_DNK_2_sp.rds")
-municipalities
+municipalities <- getData("GADM", country = "DNK", level = 2)
+plot(municipalities)
 
 # Convert municipalities to sf object and project to epsg 25832
 municipalities_25832 <- st_transform(st_as_sf(municipalities), crs = 25832)
@@ -128,24 +129,24 @@ In the `sf` package, there is a function for extracting the bounding box coordin
 * Create a second plot with the `aarhus_box` and `shelters` on top of the aarhus ortophoto.
 
 ```{r Ar-box, eval= FALSE}
-# Filter out the Aarhus kommune from the municipalities sf object
-aarhus_mun <- _______________ %>% 
-  filter(____________)
+# Filter our Aarhus kommune from the municipalities sf object
+aarhus_mun <- municipalities_25832 %>% 
+  filter(NAME_2=="Århus")
 
 # Plot the aarhus municipality and the shelters
-plot(_______(aarhus_mun), col = "grey", border = "white")
-plot(________, add = TRUE, pch = 16, col = "forestgreen")
+plot(st_geometry(aarhus_mun), col = "grey", border = "white")
+plot(shelters, add = TRUE, pch = 16, col = "forestgreen")
 
 # Compute the coordinates of the bounding box
-_________(aarhus_mun)
+st_bbox(aarhus_mun)
 
 # Create a bounding box polygon
-aarhus_box <- __________(aarhus_mun, n = ______)
+aarhus_box <- st_make_grid(aarhus_mun, n = 1)
 
-# Plot all the DK municipalities, add the shelters and the new box outlining the Aarhus municipality
+# Plot all the DK municipalities, add the shelters and the new box outlining Aarhus municipality
 plot(st_geometry(municipalities_25832), col = "grey", border = "white")
-plot(________, _________, pch = 16, col = "forestgreen")
-plot(________, _________)
+plot(shelters, add = TRUE, pch = 16, col = "forestgreen")
+plot(aarhus_box, add = TRUE)
 ```
 
 
@@ -168,32 +169,32 @@ With polygons, `st_union()` will dissolve all the polygons into a single polygon
 * Compute the number of features in the `sh_buf_union` object with `length()` and `plot()` to see what the dissolved object looks like.
 
 ```{r shelter-buffers, eval=FALSE}
-# Buffer the shelters by 500m after projecting the object to crs
-all.equal(___________,________)
+# Check whether the crs of shelters and aarhus municipality object is identical
+all.equal(st_crs(shelters),st_crs(aarhus_mun))
 
+# Buffer the shelters by 500m after projecting the object to crs
 sh_buffer <- shelters %>% 
-  # project to Aarhus municipality CRS if different
-  ___________(crs = ________) %>% 
-  st_buffer(______)
+  # only if your CRS is different from Aarhus municipality
+  st_transform(crs = st_crs(aarhus_mun)) %>% 
+  st_buffer(500)
 
 # Limit the object to just geometry
-sh_buffers <- _________(sh_buffer)
+sh_buffers <- st_geometry(sh_buffer)
 
 # Compute the number of features in sh_buffer
-________(sh_buffers)
+length(sh_buffers)
 
 # Plot the shelter buffers
-_____(sh_buffers)
+plot(sh_buffers)
 
 # Dissolve the buffers
-sh_buf_union <- __________(sh_buffers)
+sh_buf_union <- st_union(sh_buffers)
 
 # Compute the number of features in sh_buf_union
-________(sh_buf_union)
+length(sh_buf_union)
 
 # Plot the dissolved buffers
-______(sh_buf_union)
-
+plot(sh_buf_union)
 ```
 
 
@@ -213,24 +214,24 @@ A more precise bounding polygon is sometimes needed, one that fits your data mor
 
 ```{r convexhull, eval=FALSE}
 # Look at the data frame to see the type of geometry
-___(shelters)
+head(shelters)
 
 # Convert the points to a single multi-point
-sh1 <- ___(shelters)
+sh1 <- st_union(shelters)
 
 # Look at the data frame to see the type of geometry
-___(sh1)
+head(sh1)
 
 # Confirm that we went from 17 features to 1 feature
-___(shelters)
-___(sh1)
+length(shelters)
+length(sh1)
 
 # Compute the tight bounding box
-shelters_hull <- ___(sh1)
+shelters_hull <- st_convex_hull(sh1)
 
 # Plot the points together with the hull
 plot(shelters_hull, col = "red")
-plot(sh1, ___ = ___)
+plot(sh1, add =TRUE)
 ```
 
 
