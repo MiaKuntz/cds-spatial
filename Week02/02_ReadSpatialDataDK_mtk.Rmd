@@ -426,7 +426,7 @@ the_crs <-crs(aarhus, asText = TRUE)
 # Project playgrounds to match the CRS of aarhus
 playgrounds_crs <- st_transform(playgrounds, crs = the_crs)
 
-# Project  to match the CRS of aarhus
+# Project to match the CRS of aarhus
 elevation_crs <- projectRaster(elevation, crs = the_crs, method = "ngb")
 
 # Look at the CRS to see if they match
