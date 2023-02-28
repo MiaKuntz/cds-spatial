@@ -38,9 +38,8 @@ In this task, you will find out which municipality in Denmark has the most Vikin
 * Plot the monuments (`viking`) on top of the municipalities. You will want to plot only the geometry of the municipalities.
 
 ```{r monuments-dk, eval=FALSE}
-
 # Load the monuments into R
-monuments <- read_sf("fortidsminder/anlaeg_all_25832.shp")
+monuments <- read_sf("../../large_data/fortidsminder/anlaeg_all_25832.shp")
 
 # Check the periodisation and type of the monuments
 unique(monuments$datering)
@@ -54,12 +53,13 @@ viking <- monuments %>%
 library(raster)
 municipalities <-  getData("GADM", country = "DNK", level = 2)
 municipalities_25832 <- municipalities %>% 
-  st_as_sf(municipalities_25832) %>%
-  st_transform(municipalities, crs=25832)
+  st_as_sf() %>% 
+  st_transform(crs = 25832)
 
 # Plot the monuments on top of the municipalities
 plot(st_geometry(municipalities_25832))
-plot(viking, add = TRUE, pch = 16, col = "red")
+#plot(viking, add = TRUE, pch = 16, col = "red")
+plot(viking["anlaegsbet"], add = TRUE)
 ```
 
 # Task 2: Spatial joins - monuments and municipalities
@@ -99,10 +99,8 @@ least <- viking_neigh %>%
   slice(1:5)
   
 # Plot the municipalities with fewest Viking finds in red over DK municipalities
-plot(st_geometry(municipalities_25832), col = "grey", border = "white")
-plot(municipalities_25832 %>% 
-       filter(NAME_2 %in% least$NAME_2) %>% 
-       st_geometry(), col = "red", add = T)
+plot(municipalities_25832$geometry, col = "grey", border = "white")
+plot(municipalities_25832[which(st_intersects(least, municipalities_25832, sparse = FALSE)), ]$geometry, col = "red", add = T) 
 ```
 
 Great! The monuments object did not have municipality information until you performed the spatial join with `st_join()`. Now that the municipality information is included you can supply each municipality office with the count and coordinates of monuments they are in charge of so they can monitor and safeguard.
@@ -134,7 +132,6 @@ parks <- st_read("../data/parks.shp")
 
 viking
 
-
 # Create a 10km buffer around Nobelparken (see Week 03 Task 01 for guidance) 
 nb <- data.frame(place = "Nobelparken", longitude = 10.2033485, latitude = 56.174346)
 nb_buf <- nb %>% 
@@ -143,8 +140,8 @@ nb_buf <- nb %>%
   st_buffer(10000)
 
 # Check consistent projection among the objects
-crs(nb_buf)==crs(parks)
-crs(nb_buf)==crs(viking)
+st_crs(nb_buf)==st_crs(parks)
+st_crs(nb_buf)==st_crs(viking)
 
 # Identify viking monuments that intersect with the buffer
 viking_int <- st_intersects(nb_buf, viking)
@@ -157,37 +154,34 @@ int <- viking_int[[1]]
 cont <- parks_cont[[1]]
 
 # Get the IDs or codes of the viking and parks in buffer
-viking$stednavn[int]
+viking$stednavn[int] # 79
+parks$navn[cont] # 32
+
+# How many and what categories of viking monuments are within the buffer?
+unique(viking$stednavnsb[int])
+
+# How many parks and what are their names? 
+viking$anlaegsbet[int]
 parks$navn[cont]
 
 # Clip the viking monuments and parks layers by the buffer (ignore the warning)
 viking_clip <- st_intersection(nb_buf, viking)
-parks_clip <- st_intersection(nb_buf, parks)
+parks_clip <- parks %>% 
+  slice(cont)
 
 # Plot the geometry of the clipped viking monuments
 plot(nb_buf$geometry, border = "blue")
-plot(parks[cont,], add = TRUE, col = "yellow")
-plot(st_geometry(viking_clip), col = "red", add = TRUE, pch = 19)
+plot(st_geometry(parks[cont,]), add = TRUE, col = "aquamarine", border = "grey")
+plot(viking_clip$geometry, add = TRUE, col = "red", pch = 4)
 ```
 
 #### Questions: 
 
 1. What is the class of the object produced via `st_intersects()`?
-"sgbp" "list"
 
 2. Why do we use `parks[cont,]` to view the fully contained parks in the buffer plot?
-We defined the fully contained parks as a new 
 
 3. How many parks and viking monuments respectively are there within the buffer?
-There are 79 viking monuments and 32 parks within the buffer
-
-```{r questions}
-class(viking_int)
-
-count(viking_clip)
-count(parks_clip)
-
-```
 
 The `sf` package has a lot of different functions for determining relationships. Some are easy to conflate!  You have just used `st_intersects()` and `st_contains()` here but there are others as well and what you use will depend on what relationships you're looking at. In this exercise you also used the important `st_intersection()` function to clip one layer based on another.
 
@@ -220,12 +214,16 @@ head(d)
 
 # Find the index of the 10 nearest viking monuments
 sorted <- sort(d) # sort monuments by proximity
-nearest10index <- which ( __________) # which distances are smaller than the 10th smallest distance
+nearest10index <- which(d<=sorted[10]) # which distances are smaller than the 10th smallest distance
 
 # Identify the viking monuments that are the nearest, what kinds of monuments are they?
-viking_clip[_________,]$anlaegsbet
+viking_clip[nearest10index,]$anlaegsbet
+#viking[nearest10index,]$geometry
 
 # Plot the results by re-running the plot from exercise 6
+plot(nb_buf$geometry, border = "blue")
+plot(st_geometry(parks[cont,]), add = TRUE, col = "aquamarine", border = "grey")
+plot(viking_clip[nearest10index,]$geometry, add = TRUE, col = "red", pch = 4)
 ```
 
 Nice work! If you look at the result for the last line of code carefully you'll see that the closest viking monument is Befæstning at 1580m. In this case one of our feature sets was a single feature. You may end up applying this function in situations where there are multiple features in both objects. In this situation `sf` will return a matrix. Distance matrices take long time to calculate and so sometimes you calculate distance between the nearest two features from two different datasets. That will be the homework :)
@@ -246,10 +244,24 @@ Let us now recap some of the functionality we have learnt in the previous two we
 
 
 ```{r}
-# /Start Code/ #
+# Load `tmap` package
+library(tmap)
 
+# Filter dataset to only contain monuments from Århus
+A <- municipalities_25832 %>% filter(NAME_2 == "Århus")
 
-# /End Code/ #
+# tm_shape(municipalities_25832) +
+#   tm_borders(col = "grey") +
+tm_shape(A) + 
+  tm_polygons(col = "lightblue") + 
+  tm_shape(parks) +
+  tm_polygons(fill = "green")+
+  tm_shape(viking)+
+  tm_dots(col= "anlaeg_simple")
+
+head(viking)
+unique(viking$anlaegstyp)
+viking$anlaeg_simple <- str_extract(viking$anlaegstyp,"^\\d{3}")
 ```
 
 
