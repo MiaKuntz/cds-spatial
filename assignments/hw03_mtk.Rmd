@@ -168,46 +168,29 @@ Type answers to the questions as code comments next to or under the code used
 # Inspecting the `zion` object
 # Inspecting the content
 zion # By running the object I can view it's content
-# The object is a tibble with two dimensions - XY
-# Since this is an sf object I also know that is is a data frame
+# It is a single polygon with 11 features
 
-# The type of data
-typeof(zion) # Using the `typeof` function shows the object data type is a list
-# This makes good sense, as list columns, often used in spacial data sets, contains more information than what shows, and are therefor good to use when working with large amounts of geographical data
-
-# The coordinate system
-projection(zion) # Using the `projection` function shows me the coordinate system for this object
-# The used coordinate system is the GRS80
-
-# Number of attributes
-# I know from running the object, that the `zion` data set contains 11 attributes, which shows as fields
-
-# The geometry
-st_geometry(zion) # Either from running the object name or by using the `st_geometry` function we can see, that the geometry type of the `zion` data set is a polygon
-# This goes well with us knowing it contains two dimensions
+# Other types of functions to use
+# head
+# dim
+# nrow
+# ncol
+# class
+# attributes
+st_crs(zion)
 ```
 
 ```{r inspect-srtm-data}
 # Inspecting the `srtm` object
 # Inspecting the content
 srtm # By running the object I can view it's content
-# The object is a raster with four dimensions
+# The object is a RasterLayer
 
-# The type of data
-typeof(srtm) # The `srtm` object contains S4 classes. This is also what determines the attributes of the object, which I won't comment on any further, as this area is rather unknown to me
-
-# The coordinate system
-projection(srtm) # Using the `projection` function shows me the coordinate system for this object
-# The used coordinate system is the WGS84
-
-# Number of attributes
-attributes(srtm)
-
-# Number of dimensions
-dim(srtm) # Either from running the object name or by using the `dim` function we can see, that the object contains three dimensions
-
-# The data resolution
-res(srtm) # Either from running the object name or by using the `res` function we can see, that the data resolution is 0.0008333333,0.0008333333 
+# Other types of functions to use
+# extent
+# res
+# ncells
+# nlayers
 ```
 
 # Exercise 3 - Reconciling Coordinate systems
@@ -227,34 +210,21 @@ Now that you know that coordinate systems differ, make them compatible twice ove
 
 ## Your solution
 
-```{r crs assign zion to srtm}
-# Project the zion object and assign ESPG
-projection(zion)
-st_crs(zion) <- 4326
+```{r reproject srtm crs to zion}
+# Get the crs from the srtm object
+srtm_crs <- crs(srtm, asText = TRUE)
 
-# Create new srtm object to assign zion CRS
-srtm2 <- srtm
-
-# Assigning the zion CRS to srtm2 object and creating new object to obtain the change in
-srtm2_4326 <- projectRaster(srtm2, crs = zion, method = "ngb")
-
-# Checking whether or not the CRS match between the two objects
-all.equal(st_crs(zion),st_crs(srtm2_4326))
+# Transform the zion object to match srtm coordinate reference
+zion2 <- st_transform(zion, crs = srtm_crs, method = "ngb")
 ```
 
-```{r}
-# Project the srtm object and assign ESPG
-projection(srtm)
-crs(srtm) <- 4326
 
-# Create new zion2 object to assign srtm CRS
-zion2 <- zion
+```{r reproject zion crs to srtm}
+# Get the crs from the zion object
+zion_crs <- crs(zion, asText = TRUE)
 
-# Assigning the srtm CRS to zion2 object and creating new object to obtain the change in
-# zion2_4326 <- st_transform(zion2, crs = srtm)
-
-# Checking whether or not the CRS match between the two objects
-# all.equal(st_crs(zion),st_crs(srtm2_4326))
+# Transform the srtm object to match zion coordinate reference
+srtm2 <- projectRaster(srtm, crs = zion_crs, method = "ngb")
 ```
 
 The above code definitely needs to be corrected, and I would love to receive feedback on what goes wrong compared to when we are working on this type of code in class. Otherwise I look forward to perhaps a key file with solutions so I may try and work with it again another day.  
