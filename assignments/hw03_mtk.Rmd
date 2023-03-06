@@ -51,8 +51,8 @@ library(spData)
 
 # To install the spDataLarge uncomment the next line
 
-#install.packages("spDataLarge", repos = "https://geocompr.r-universe.dev")
-#install.packages("spData")
+install.packages("spDataLarge", repos = "https://geocompr.r-universe.dev")
+install.packages("spData")
 library(spDataLarge)
 ```
 
@@ -221,7 +221,7 @@ zion2 <- st_transform(zion, crs = srtm_crs, method = "ngb")
 
 ```{r reproject zion crs to srtm}
 # Get the crs from the zion object
-zion_crs <- crs(zion, asText = TRUE)
+zion_crs <- crs(zion)
 
 # Transform the srtm object to match zion coordinate reference
 srtm2 <- projectRaster(srtm, crs = zion_crs, method = "ngb")
