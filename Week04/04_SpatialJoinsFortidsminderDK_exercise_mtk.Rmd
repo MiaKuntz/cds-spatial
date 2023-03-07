@@ -150,12 +150,11 @@ viking_int <- st_intersects(nb_buf, viking)
 parks_cont <- st_contains(nb_buf, parks)
 
 # Get the indexes of which viking monuments intersect and which units are contained by the buffer
-int <- viking_int[[1]]
-cont <- parks_cont[[1]]
+int <- viking_int[[1]] # 79
+cont <- parks_cont[[1]] # 32
 
-# Get the IDs or codes of the viking and parks in buffer
-viking$stednavn[int] # 79
-parks$navn[cont] # 32
+# Identify viking monuments that intersect with the buffer
+viking_int <- st_intersects(nb_buf, viking)
 
 # How many and what categories of viking monuments are within the buffer?
 unique(viking$stednavnsb[int])
